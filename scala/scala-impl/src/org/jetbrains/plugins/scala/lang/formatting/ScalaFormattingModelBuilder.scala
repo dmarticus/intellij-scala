@@ -10,11 +10,12 @@ import com.intellij.psi.codeStyle.CodeStyleSettings
 import com.intellij.psi.formatter.{FormattingDocumentModelImpl, PsiBasedFormattingModel}
 import com.intellij.psi.impl.source.tree.TreeUtil
 import com.intellij.psi.tree.IElementType
-import org.jetbrains.plugins.scala.lang.formatting.ScalaFormattingModelBuilder._
-import org.jetbrains.plugins.scala.lang.lexer.ScalaTokenTypes
 import org.jetbrains.plugins.scala.extensions.inWriteAction
+import org.jetbrains.plugins.scala.lang.formatting.ScalaFormattingModelBuilder._
 import org.jetbrains.plugins.scala.lang.formatting.processors.ScalaFmtPreFormatProcessor
 import org.jetbrains.plugins.scala.lang.formatting.settings.ScalaCodeStyleSettings
+import org.jetbrains.plugins.scala.lang.lexer.ScalaTokenTypes
+import org.jetbrains.plugins.scala.worksheet.WorksheetLanguage
 
 sealed class ScalaFormattingModelBuilder extends FormattingModelBuilder {
 
@@ -27,12 +28,16 @@ sealed class ScalaFormattingModelBuilder extends FormattingModelBuilder {
       //preprocessing is done by this point, use this little side-effect to clean-up ranges synchronization
       ScalaFmtPreFormatProcessor.clearRangesCache()
     }
+    val language = element.getLanguage
+    assert(language == ScalaLanguage.INSTANCE || language == WorksheetLanguage.INSTANCE)
 
-    val containingFile: PsiFile = element.getContainingFile.getViewProvider.getPsi(ScalaLanguage.INSTANCE)
+    val viewProvider = element.getContainingFile.getViewProvider
+    val containingFile: PsiFile = viewProvider.getPsi(language)
     assert(containingFile != null, element.getContainingFile)
     val astNode: ASTNode = containingFile.getNode
     assert(astNode != null)
-    val block: ScalaBlock = new ScalaBlock(null, astNode, null, null, Indent.getAbsoluteNoneIndent, null, settings)
+
+    val block = new ScalaBlock(null, astNode, null, null, Indent.getAbsoluteNoneIndent, null, settings)
     new ScalaFormattingModel(containingFile, block, FormattingDocumentModelImpl.createOn(containingFile))
   }
 
